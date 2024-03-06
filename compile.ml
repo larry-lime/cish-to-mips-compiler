@@ -78,12 +78,77 @@ let rec collect_vars_stmt ((s, _) : stmt) =
       collect_vars_exp e3;
       collect_vars_stmt s
   | Return e -> collect_vars_exp e
-  | _ -> raise IMPLEMENT_ME
+  | Let (v, e, s) -> raise IMPLEMENT_ME
 
 (* FIXME: This expression has type program = func list but an expression was expected of type stmt = rstmt * pos*)
 let rec collect_vars (p : Ast.program) : unit =
   (*************************************************************)
   collect_vars_stmt p
+
+let rec exp2mips ((e, p) : Ast.exp) : inst list =
+  match e with
+  | Call (f, args) ->
+      (* Example implementation to handle function calls:
+         1. Evaluate arguments and push them onto the stack.
+         2. Call the function.
+         3. Adjust the stack pointer if necessary.
+         4. Move the function's return value to the appropriate register (if not already).
+      *)
+      raise IMPLEMENT_ME
+  | Int j -> [ Li (R2, Word32.fromInt j) ]
+  | Var x -> [ La (R2, x); Lw (R2, R2, Word32.fromInt 0) ]
+  | Binop (e1, b, e2) -> (
+      binop_helper e1 e2
+      @
+      match b with
+      | Plus -> [ Add (R2, R2, Reg R3) ]
+      | Minus -> [ Sub (R2, R3, R2) ]
+      | Times -> [ Mul (R2, R2, R3) ]
+      | Div -> [ Div (R2, R3, R2) ]
+      | Eq -> [ Seq (R2, R3, R2) ]
+      | Neq -> [ Sne (R2, R3, R2) ]
+      | Lt -> [ Slt (R2, R3, Reg R2) ]
+      | Lte -> [ Sle (R2, R3, R2) ]
+      | Gt -> [ Sgt (R2, R3, R2) ]
+      | Gte -> [ Sge (R2, R3, R2) ])
+  | Assign (x, e) -> exp2mips e @ [ La (R3, x); Sw (R2, R3, Word32.fromInt 0) ]
+  | Not e -> exp2mips e @ [ Sgt (R2, R2, R0); Seq (R2, R2, R0) ]
+  | Or (e1, e2) ->
+      binop_helper e1 e2
+      @ [ Sgt (R2, R2, R0); Sgt (R3, R3, R0); Or (R2, R2, Reg R3) ]
+  | And (e1, e2) ->
+      binop_helper e1 e2
+      @ [ Sgt (R2, R2, R0); Sgt (R3, R3, R0); And (R2, R2, Reg R3) ]
+
+and binop_helper e1 e2 =
+  let t = new_temp () in
+  exp2mips e1
+  @ [ La (R3, t); Sw (R2, R3, Word32.fromInt 0) ]
+  @ exp2mips e2
+  @ [ La (R3, t); Lw (R3, R3, Word32.fromInt 0) ]
+
+let rec compile_stmt ((s, p) : Ast.stmt) : inst list =
+  (*************************************************************)
+  match s with
+  | Exp e -> exp2mips e
+  | Seq (s1, s2) -> compile_stmt s1 @ compile_stmt s2
+  | If (e, s1, s2) ->
+      let else_l = new_label () in
+      let end_l = new_label () in
+      exp2mips e
+      @ [ Beq (R2, R0, else_l) ]
+      @ compile_stmt s1 @ [ J end_l; Label else_l ] @ compile_stmt s2
+      @ [ Label end_l ]
+  | While (e, s) ->
+      let test_l = new_label () in
+      let top_l = new_label () in
+      [ J test_l; Label top_l ] @ compile_stmt s @ [ Label test_l ] @ exp2mips e
+      @ [ Bne (R2, R0, top_l) ]
+  | For (e1, e2, e3, s) ->
+      compile_stmt
+        (Seq ((Exp e1, 1), (While (e2, (Seq (s, (Exp e3, 1)), 1)), 1)), 1)
+  | Return e -> exp2mips e @ [ Jr R31 ]
+  | Let (v, e, s) -> raise IMPLEMENT_ME
 
 (*TODO: Implement compile function*)
 let rec compile (p : Ast.program) : result = raise IMPLEMENT_ME
