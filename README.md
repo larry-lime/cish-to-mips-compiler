@@ -32,8 +32,7 @@ adjacent statement, and becomes unavailable outside.
 To expressions, we have added a new form var(exp1,...,expn) which
 represents a function call. Here, var is the name of the function.
 
-**
-NOTE: The starter code also automatically emits assembly code for a
+**NOTE: The starter code also automatically emits assembly code for a
 helper function called printInt that takes an integer as an argument and
 prints it using a system call that is supported by the Spim
 emulator. You can think of this as a very simple "standard library"
@@ -42,8 +41,7 @@ does not have to generate any more code to _implement_ this function,
 but your compiler should support calls to this function much like a
 call to any other function. You can use printInt to help test and
 debug your compiler. Take a look at the example
-test/print_01ceper_01add.cish.
-**
+test/print_01ceper_01add.cish.**
 
 I've provided the abstract syntax, lexer, parser, and updated
 interpreter. You have to provide the compiler. You'll ideally want
@@ -86,8 +84,6 @@ expects a file to compile, i.e. running
 will emit the resulting assembly code. You can then save this to a file
 and run it with spim as you did for ps3.
 
-**
-NOTE: unlike the tests for ps3, the emitted assembly code will NOT
+**NOTE: unlike the tests for ps3, the emitted assembly code will NOT
 by default print out the return value of main. Instead, add calls to
-printInt if you want to print some output for testing.
-**
+printInt if you want to print some output for testing.**
